@@ -17,7 +17,8 @@ class ProductFactory extends Factory
 
     public function definition(): array
     {
-        $name = fake()->unique()->words(3, true);
+        $words = fake()->unique()->words(3);
+        $name = is_array($words) ? implode(' ', $words) : $words;
 
         return [
             'tenant_id' => Tenant::factory(),

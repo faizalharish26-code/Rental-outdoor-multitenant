@@ -39,6 +39,7 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
     /**
      * Mendapatkan keanggotaan tenant milik user.
      */
+    /** @return HasMany<TenantStaff, $this> */
     public function tenantStaff(): HasMany
     {
         return $this->hasMany(TenantStaff::class);

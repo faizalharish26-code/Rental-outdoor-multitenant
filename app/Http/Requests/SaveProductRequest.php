@@ -34,11 +34,15 @@ class SaveProductRequest extends FormRequest
         ]);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
         /** @var Tenant $tenant */
         $tenant = $this->route('tenant');
         $product = $this->route('product');
+        $ignoredProductId = $product instanceof Product ? $product->getKey() : null;
 
         return [
             'category_id' => [
@@ -54,7 +58,7 @@ class SaveProductRequest extends FormRequest
                 'max:200',
                 Rule::unique('products', 'slug')
                     ->where('tenant_id', $tenant->id)
-                    ->ignore($product?->id),
+                    ->ignore($ignoredProductId),
             ],
             'description' => ['nullable', 'string', 'max:5000'],
             'rental_price_per_day' => [
