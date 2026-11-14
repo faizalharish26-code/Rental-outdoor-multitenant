@@ -13,6 +13,27 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: rental_outdoor_multitenant
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -ppassword"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USERNAME: root
+      DB_PASSWORD: password
+
     steps:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -33,6 +54,14 @@ jobs:
 
       - name: Setup Application
         run: composer setup
+
+      - name: Create testing database
+        run: |
+          MYSQL_PWD="$DB_PASSWORD" mysql --host=127.0.0.1 --port=3306 --user=root <<'SQL'
+          CREATE DATABASE IF NOT EXISTS `rental-outdoor-test`
+            CHARACTER SET utf8mb4
+            COLLATE utf8mb4_unicode_ci;
+          SQL
 
       - name: Run CI Checks
         run: composer ci:check
