@@ -2,15 +2,15 @@
 
 use App\Http\Controllers\TenantCategoryController;
 use App\Http\Controllers\TenantProductController;
-use Illuminate\Support\Facades\Route;
 use App\Livewire\CheckoutForm;
+use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
-// Route Tenant Products (dari branch dev / Wisnu)
+    // Route Tenant Products (dari branch dev / Wisnu)
     Route::prefix('tenant/{tenant:slug}')
         ->name('tenant.')
         ->scopeBindings()

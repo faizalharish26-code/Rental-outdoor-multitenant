@@ -4,86 +4,96 @@ namespace App\Livewire;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
+use Carbon\Carbon;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Livewire\Component;
 
 class CheckoutForm extends Component
 {
-    public $tenant_id;
-    public $start_date;
-    public $end_date;
-    
-    // Simulasi data keranjang peminjaman
-    public $items = [
-        [
-            'product_id' => '',
-            'product_name' => 'Carrier Deuter 65L',
-            'price_per_day' => 35000,
-            'quantity' => 1
-        ]
+    public int|string|null $tenant_id = null;
+
+    public ?string $start_date = null;
+
+    public ?string $end_date = null;
+
+    /**
+     * @var array<int, array{product_id: int|string, quantity: int}>
+     */
+    public array $items = [];
+
+    /**
+     * @var array<string, string>
+     */
+    protected array $rules = [
+        'tenant_id' => 'required',
+        'start_date' => 'required|date|after_or_equal:today',
+        'end_date' => 'required|date|after:start_date',
+        'items' => 'required|array|min:1',
+        'items.*.product_id' => 'required|exists:products,id',
+        'items.*.quantity' => 'required|integer|min:1',
     ];
 
-    public function submitOrder()
+    public function submitOrder(): void
     {
-        $this->validate([
-            'tenant_id' => 'required|uuid',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after:start_date',
-            'items.*.quantity' => 'required|integer|min:1',
-        ]);
+        $this->validate();
 
-        DB::beginTransaction();
-        try {
-            $startDate = new \DateTime($this->start_date);
-            $endDate = new \DateTime($this->end_date);
-            $days = $startDate->diff($endDate)->days ?: 1;
+        $start = Carbon::parse($this->start_date);
+        $end = Carbon::parse($this->end_date);
+        $days = max(1, $start->diffInDays($end));
 
-            $totalAmount = 0;
+        DB::transaction(function () use ($days): void {
+            $totalAmount = 0.0;
+            $itemsData = [];
 
-            // Simpan ke tabel orders
+            foreach ($this->items as $item) {
+                /** @var Product $product */
+                $product = Product::findOrFail($item['product_id']);
+                $subtotal = (float) $product->rental_price_per_day * (int) $item['quantity'] * $days;
+                $totalAmount += $subtotal;
+
+                $itemsData[] = [
+                    'product_id' => $product->id,
+                    'quantity' => (int) $item['quantity'],
+                    'price_per_day' => (float) $product->rental_price_per_day,
+                    'subtotal' => $subtotal,
+                ];
+            }
+
+            /** @var Order $order */
             $order = Order::create([
-                'user_id' => auth()->id() ?? '11111111-1111-1111-1111-111111111111', // Dummy ID jika belum login
+                'user_id' => Auth::id(),
                 'tenant_id' => $this->tenant_id,
-                'order_number' => 'ORD-' . strtoupper(Str::random(10)),
-                'total_amount' => 0,
+                'order_number' => 'ORD-'.strtoupper(Str::random(10)),
+                'total_amount' => $totalAmount,
                 'status' => 'pending',
                 'start_date' => $this->start_date,
                 'end_date' => $this->end_date,
             ]);
 
-            // Simpan rincian ke tabel order_items
-            foreach ($this->items as $item) {
-                $productId = $item['product_id'] ?: '22222222-2222-2222-2222-222222222222'; // Dummy ID Product Wisnu
-                
-                $subtotal = $item['quantity'] * $item['price_per_day'] * $days;
-                $totalAmount += $subtotal;
-
+            foreach ($itemsData as $data) {
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'product_id' => $productId,
-                    'quantity' => $item['quantity'],
-                    'price_per_day' => $item['price_per_day'],
-                    'subtotal' => $subtotal,
+                    'product_id' => $data['product_id'],
+                    'inventory_unit_id' => null,
+                    'quantity' => $data['quantity'],
+                    'price_per_day' => $data['price_per_day'],
+                    'subtotal' => $data['subtotal'],
                 ]);
             }
 
-            // Update total harga keseluruhan pada order
-            $order->update(['total_amount' => $totalAmount]);
-
-            DB::commit();
-
-            session()->flash('message', 'Peminjaman berhasil dibuat dengan nomor: ' . $order->order_number);
-            return redirect()->to('/checkout');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            session()->flash('error', 'Gagal memproses pesanan: ' . $e->getMessage());
-        }
+            session()->flash('message', 'Order berhasil dibuat! ID: '.$order->id);
+            $this->reset(['items', 'start_date', 'end_date']);
+        });
     }
 
-    public function render()
+    public function render(): View
     {
-        return view('livewire.checkout-form');
+        return view('livewire.checkout-form', [
+            'products' => Product::where('tenant_id', $this->tenant_id)->get(),
+        ]);
     }
 }

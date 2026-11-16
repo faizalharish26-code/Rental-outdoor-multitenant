@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('order_items', function (Blueprint $table) {
-           $table->uuid('id')->primary();
-           $table->foreignUuid('order_id')->constrained('orders')->casecadeOnDelete();
-           $table->foreignUuid('product_id')->constrained('products');
-            $table->foreignUuid('inventory_unit_id')->nullable()->constrained('inventory_units');
+        Schema::create('order_items', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('order_id')->constrained('orders')->cascadeOnDelete();
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
+            $table->uuid('inventory_unit_id')->nullable();
             $table->integer('quantity');
             $table->decimal('price_per_day', 12, 2);
             $table->decimal('subtotal', 12, 2);
