@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concers\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
-
-
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
-    use HasFactory, HasUuids;
+    use HasUuids;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
     protected $fillable = [
         'user_id',
         'tenant_id',
@@ -21,19 +25,28 @@ class Order extends Model
         'start_date',
         'end_date',
     ];
-    
-    public function items()
+
+    /**
+     * @return HasMany<OrderItem, $this>
+     */
+    public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function tenant()
+    /**
+     * @return BelongsTo<Tenant, $this>
+     */
+    public function tenant(): BelongsTo
     {
-        return $this->belongsTo(tenant::class);
+        return $this->belongsTo(Tenant::class);
     }
 }
