@@ -92,7 +92,7 @@ class CheckoutForm extends Component
 
     public function render(): View
     {
-        return view('livewire.checkout-form', [
+        return view('components.checkout-form', [
             'products' => Product::where('tenant_id', $this->tenant_id)->get(),
         ]);
     }

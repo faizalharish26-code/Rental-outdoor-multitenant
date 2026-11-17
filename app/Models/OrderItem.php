@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use App\Models\Concerns\BelongsToTenant;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OrderItem extends Model
 {
-    use HasUuids;
+    use BelongsToTenant;
+    use HasFactory;
+    // Hapus trait 'HasUuids' karena kita menggunakan BIGINT (auto-increment)
 
     /**
      * The attributes that are mass assignable.
@@ -16,13 +20,31 @@ class OrderItem extends Model
      * @var list<string>
      */
     protected $fillable = [
+        'tenant_id',
         'order_id',
         'product_id',
         'inventory_unit_id',
         'quantity',
         'price_per_day',
+        'duration_days',
         'subtotal',
+        'product_name_snapshot',
     ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'quantity' => 'integer',
+            'price_per_day' => 'decimal:2',
+            'duration_days' => 'integer',
+            'subtotal' => 'decimal:2',
+        ];
+    }
 
     /**
      * @return BelongsTo<Order, $this>
@@ -37,6 +59,14 @@ class OrderItem extends Model
      */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
+    }
+
+    /**
+     * @return HasMany<RentalFulfillment, $this>
+     */
+    public function fulfillments(): HasMany
+    {
+        return $this->hasMany(RentalFulfillment::class);
     }
 }
