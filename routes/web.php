@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\TenantCategoryController;
+use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantProductController;
 use App\Livewire\CheckoutForm;
 use Illuminate\Support\Facades\Route;
@@ -10,11 +11,14 @@ Route::view('/', 'welcome')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
 
-    // Route Tenant Products (dari branch dev / Wisnu)
+    // Route tenant: dashboard admin, produk, dan kategori
     Route::prefix('tenant/{tenant:slug}')
         ->name('tenant.')
         ->scopeBindings()
         ->group(function (): void {
+            Route::get('/dashboard', TenantDashboardController::class)
+                ->name('dashboard');
+
             Route::get('/products', [TenantProductController::class, 'index'])
                 ->name('products.index');
 
@@ -52,7 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('categories.destroy');
         });
 
-    // Route Checkout (milik branch feature/order-orderitems Anda)
+    // Route checkout
     Route::get('/checkout', CheckoutForm::class)->name('checkout');
 });
 
