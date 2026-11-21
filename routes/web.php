@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\TenantCategoryController;
 use App\Http\Controllers\TenantDashboardController;
+use App\Http\Controllers\TenantOrderController;
 use App\Http\Controllers\TenantProductController;
 use App\Livewire\CheckoutForm;
 use Illuminate\Support\Facades\Route;
@@ -18,6 +19,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->group(function (): void {
             Route::get('/dashboard', TenantDashboardController::class)
                 ->name('dashboard');
+
+            Route::get('/orders', [TenantOrderController::class, 'index'])
+                ->name('orders.index');
+
+            Route::get('/orders/{order}', [TenantOrderController::class, 'show'])
+                ->name('orders.show');
 
             Route::get('/products', [TenantProductController::class, 'index'])
                 ->name('products.index');

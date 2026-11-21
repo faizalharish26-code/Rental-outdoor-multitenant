@@ -63,6 +63,15 @@
                         >
                             Kategori
                         </flux:sidebar.item>
+
+            <flux:sidebar.item
+                 icon="clipboard-document-list"
+                   :href="route('tenant.orders.index', $tenantContext)"
+                  :current="request()->routeIs('tenant.orders.*')"
+                  wire:navigate
+            >
+                Pesanan
+            </flux:sidebar.item>
                     @else
                         <flux:sidebar.item
                             icon="home"
