@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\TenantCategoryController;
 use App\Http\Controllers\TenantDashboardController;
+use App\Http\Controllers\TenantInventoryController;
 use App\Http\Controllers\TenantOrderController;
 use App\Http\Controllers\TenantProductController;
-use App\Http\Controllers\TenantInventoryController;
 use App\Livewire\CheckoutForm;
 use Illuminate\Support\Facades\Route;
 
@@ -26,6 +26,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('/orders/{order}', [TenantOrderController::class, 'show'])
                 ->name('orders.show');
+
+            Route::post('/orders/{order}/status', [TenantOrderController::class, 'updateStatus'])
+                ->name('orders.status');
 
             Route::get('/products', [TenantProductController::class, 'index'])
                 ->name('products.index');
@@ -62,20 +65,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::delete('/categories/{category}', [TenantCategoryController::class, 'destroy'])
                 ->name('categories.destroy');
-	    Route::get('/inventory', [TenantInventoryController::class, 'index'])
- 	        ->name('inventory.index');
+            Route::get('/inventory', [TenantInventoryController::class, 'index'])
+                ->name('inventory.index');
 
- 	    Route::get('/inventory/create', [TenantInventoryController::class, 'create'])
-  	        ->name('inventory.create');
+            Route::get('/inventory/create', [TenantInventoryController::class, 'create'])
+                ->name('inventory.create');
 
-	    Route::post('/inventory', [TenantInventoryController::class, 'store'])
-    	        ->name('inventory.store');
+            Route::post('/inventory', [TenantInventoryController::class, 'store'])
+                ->name('inventory.store');
 
-	    Route::get('/inventory/{inventoryUnit}/edit', [TenantInventoryController::class, 'edit'])
-   	        ->name('inventory.edit');
+            Route::get('/inventory/{inventoryUnit}/edit', [TenantInventoryController::class, 'edit'])
+                ->name('inventory.edit');
 
-	    Route::put('/inventory/{inventoryUnit}', [TenantInventoryController::class, 'update'])
-  	        ->name('inventory.update');
+            Route::put('/inventory/{inventoryUnit}', [TenantInventoryController::class, 'update'])
+                ->name('inventory.update');
         });
 
     // Route checkout

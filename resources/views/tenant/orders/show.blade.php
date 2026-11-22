@@ -21,6 +21,18 @@
             </a>
         </header>
 
+        @if (session('success'))
+            <div class="rounded-lg border border-green-300 bg-green-50 p-4 text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
+                {{ session('success') }}
+            </div>
+        @endif
+
+        @error('status')
+            <div class="rounded-lg border border-red-300 bg-red-50 p-4 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+                {{ $message }}
+            </div>
+        @enderror
+
         <section class="grid gap-4 sm:grid-cols-2">
             <article class="rounded-xl border border-zinc-200 p-5 dark:border-zinc-700">
                 <h2 class="font-semibold">Pelanggan</h2>
@@ -47,11 +59,99 @@
             </article>
         </section>
 
+        @if ($order->status === 'pending')
+            <section class="rounded-xl border border-amber-300 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950">
+                <h2 class="font-semibold">Tindakan pesanan</h2>
+                <p class="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
+                    Konfirmasikan pembayaran hanya setelah dana benar-benar diterima.
+                </p>
+
+                <div class="mt-4 flex flex-wrap gap-3">
+                    <form
+                        method="POST"
+                        action="{{ route('tenant.orders.status', [$tenant, $order]) }}"
+                    >
+                        @csrf
+                        <input type="hidden" name="status" value="paid">
+
+                        <button
+                            type="submit"
+                            class="inline-flex min-h-11 items-center rounded-lg bg-green-800 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                        >
+                            Konfirmasi pembayaran
+                        </button>
+                    </form>
+
+                    <form
+                        method="POST"
+                        action="{{ route('tenant.orders.status', [$tenant, $order]) }}"
+                        onsubmit="return confirm('Yakin ingin membatalkan pesanan ini?')"
+                    >
+                        @csrf
+                        <input type="hidden" name="status" value="cancelled">
+
+                        <button
+                            type="submit"
+                            class="inline-flex min-h-11 items-center rounded-lg border border-red-300 px-4 py-2 font-semibold text-red-800 hover:bg-red-100 dark:border-red-800 dark:text-red-300 dark:hover:bg-red-950"
+                        >
+                            Batalkan pesanan
+                        </button>
+                    </form>
+                </div>
+            </section>
+        @elseif ($order->status === 'paid')
+            <section class="rounded-xl border border-zinc-200 p-5 dark:border-zinc-700">
+                <h2 class="font-semibold">Tindakan pesanan</h2>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+                    Tandai pesanan sudah diserahkan saat barang diberikan kepada pelanggan.
+                </p>
+
+                <form
+                    class="mt-4"
+                    method="POST"
+                    action="{{ route('tenant.orders.status', [$tenant, $order]) }}"
+                >
+                    @csrf
+                    <input type="hidden" name="status" value="fulfilled">
+
+                    <button
+                        type="submit"
+                        class="inline-flex min-h-11 items-center rounded-lg bg-green-800 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                    >
+                        Tandai sudah diserahkan
+                    </button>
+                </form>
+            </section>
+        @elseif ($order->status === 'fulfilled')
+            <section class="rounded-xl border border-zinc-200 p-5 dark:border-zinc-700">
+                <h2 class="font-semibold">Tindakan pesanan</h2>
+                <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
+                    Tandai selesai setelah barang sewaan dikembalikan.
+                </p>
+
+                <form
+                    class="mt-4"
+                    method="POST"
+                    action="{{ route('tenant.orders.status', [$tenant, $order]) }}"
+                >
+                    @csrf
+                    <input type="hidden" name="status" value="completed">
+
+                    <button
+                        type="submit"
+                        class="inline-flex min-h-11 items-center rounded-lg bg-green-800 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                    >
+                        Tandai barang sudah dikembalikan
+                    </button>
+                </form>
+            </section>
+        @endif
+
         <section class="space-y-4">
             <div>
                 <h2 class="text-xl font-bold">Barang dalam pesanan</h2>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                    Rincian produk dan biaya yang tersimpan pada pesanan ini.
+                    Rincian produk, unit, dan biaya pada pesanan ini.
                 </p>
             </div>
 
@@ -61,10 +161,11 @@
                 </div>
             @else
                 <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-700">
-                    <table class="min-w-[650px] w-full text-left text-sm">
+                    <table class="min-w-[760px] w-full text-left text-sm">
                         <thead class="bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                             <tr>
                                 <th scope="col" class="p-4">Produk</th>
+                                <th scope="col" class="p-4">Kode unit</th>
                                 <th scope="col" class="p-4">Jumlah</th>
                                 <th scope="col" class="p-4">Harga per hari</th>
                                 <th scope="col" class="p-4">Subtotal</th>
@@ -75,6 +176,9 @@
                                 <tr>
                                     <td class="p-4 font-semibold">
                                         {{ $item->product?->name ?? 'Produk sudah tidak tersedia' }}
+                                    </td>
+                                    <td class="p-4">
+                                        {{ $item->inventoryUnit?->unit_code ?? 'Belum ditetapkan' }}
                                     </td>
                                     <td class="p-4">{{ $item->quantity }}</td>
                                     <td class="p-4">
@@ -88,7 +192,7 @@
                         </tbody>
                         <tfoot class="bg-zinc-50 dark:bg-zinc-900">
                             <tr>
-                                <th colspan="3" scope="row" class="p-4 text-right">
+                                <th colspan="4" scope="row" class="p-4 text-right">
                                     Total pesanan
                                 </th>
                                 <td class="p-4 font-bold">
