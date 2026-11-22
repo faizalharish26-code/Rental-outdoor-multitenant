@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CustomerPaymentController;
 use App\Http\Controllers\TenantCategoryController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantInventoryController;
@@ -12,6 +13,9 @@ Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::view('dashboard', 'dashboard')->name('dashboard');
+
+    Route::get('/orders/{order}/payment', [CustomerPaymentController::class, 'show'])->name('payments.show');
+    Route::post('/orders/{order}/payment/simulate', [CustomerPaymentController::class, 'simulate'])->name('payments.simulate');
 
     // Route tenant: dashboard admin, produk, dan kategori
     Route::prefix('tenant/{tenant:slug}')

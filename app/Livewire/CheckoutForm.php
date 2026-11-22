@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\InventoryUnit;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Tenant;
 use Carbon\Carbon;
@@ -96,6 +97,11 @@ class CheckoutForm extends Component
 
     public function submitOrder(): void
     {
+        if (! app()->environment(['local', 'testing'])) {
+            throw ValidationException::withMessages([
+                'payment' => 'Checkout belum tersedia karena gateway pembayaran belum dikonfigurasi.',
+            ]);
+        }
         $validated = $this->validate();
 
         $tenantId = (int) $validated['tenant_id'];
@@ -187,9 +193,19 @@ class CheckoutForm extends Component
                 'tenant_id' => $tenant->id,
                 'order_number' => 'ORD-'.strtoupper(Str::random(10)),
                 'total_amount' => $totalAmount,
+                'deposit_amount' => round($totalAmount * 0.5, 2),
+                'payment_status' => 'unpaid',
                 'status' => 'pending',
                 'start_date' => $start,
                 'end_date' => $end,
+            ]);
+
+            Payment::create([
+                'order_id' => $order->id,
+                'provider' => 'simulation',
+                'reference' => 'SIM-'.$order->order_number,
+                'amount' => $order->deposit_amount,
+                'status' => 'pending',
             ]);
 
             foreach ($selectedUnits as $selected) {
@@ -216,6 +232,7 @@ class CheckoutForm extends Component
         );
 
         $this->reset(['items', 'start_date', 'end_date']);
+        $this->redirectRoute('payments.show', ['order' => $order]);
     }
 
     public function render(): View

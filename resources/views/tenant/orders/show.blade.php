@@ -69,25 +69,11 @@
             <section class="rounded-xl border border-amber-300 bg-amber-50 p-5 dark:border-amber-800 dark:bg-amber-950">
                 <h2 class="font-semibold">Tindakan pesanan</h2>
                 <p class="mt-1 text-sm text-zinc-700 dark:text-zinc-300">
-                    Konfirmasikan pembayaran hanya setelah dana benar-benar diterima.
+                    Status DP: {{ $order->payment_status === 'paid' ? 'sudah dibayar' : 'menunggu pembayaran pelanggan' }}.
+                    Pembayaran dicatat melalui alur pembayaran pelanggan.
                 </p>
 
                 <div class="mt-4 flex flex-wrap gap-3">
-                    <form
-                        method="POST"
-                        action="{{ route('tenant.orders.status', [$tenant, $order]) }}"
-                    >
-                        @csrf
-                        <input type="hidden" name="status" value="paid">
-
-                        <button
-                            type="submit"
-                            class="inline-flex min-h-11 items-center rounded-lg bg-green-800 px-4 py-2 font-semibold text-white hover:bg-green-700"
-                        >
-                            Konfirmasi pembayaran
-                        </button>
-                    </form>
-
                     <form
                         method="POST"
                         action="{{ route('tenant.orders.status', [$tenant, $order]) }}"

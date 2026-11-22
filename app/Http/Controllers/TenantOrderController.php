@@ -25,7 +25,7 @@ class TenantOrderController extends Controller
     ];
 
     private const TRANSITIONS = [
-        'pending' => ['paid', 'cancelled'],
+        'pending' => ['cancelled'],
         'paid' => ['fulfilled'],
         'fulfilled' => ['completed'],
         'completed' => [],
@@ -232,6 +232,12 @@ class TenantOrderController extends Controller
             $lockedOrder->update([
                 'status' => $validated['status'],
             ]);
+            if ($validated['status'] === 'cancelled') {
+                $lockedOrder->update(['payment_status' => 'cancelled']);
+                $lockedOrder->payment()
+                    ->where('status', 'pending')
+                    ->update(['status' => 'cancelled']);
+            }
         });
 
         $messages = [
