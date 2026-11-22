@@ -39,4 +39,10 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    /** @return BelongsTo<InventoryUnit, $this> */
+    public function inventoryUnit(): BelongsTo
+    {
+        return $this->belongsTo(InventoryUnit::class);
+    }
 }

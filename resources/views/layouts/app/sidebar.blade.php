@@ -64,14 +64,23 @@
                             Kategori
                         </flux:sidebar.item>
 
-            <flux:sidebar.item
-                 icon="clipboard-document-list"
-                   :href="route('tenant.orders.index', $tenantContext)"
-                  :current="request()->routeIs('tenant.orders.*')"
-                  wire:navigate
-            >
-                Pesanan
-            </flux:sidebar.item>
+                        <flux:sidebar.item
+                            icon="clipboard-document-list"
+                            :href="route('tenant.orders.index', $tenantContext)"
+                            :current="request()->routeIs('tenant.orders.*')"
+                            wire:navigate
+                        >
+                            Pesanan
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item
+                            icon="archive-box"
+                            :href="route('tenant.inventory.index', $tenantContext)"
+                            :current="request()->routeIs('tenant.inventory.*')"
+                            wire:navigate
+                        >
+                            Inventaris
+                        </flux:sidebar.item>
                     @else
                         <flux:sidebar.item
                             icon="home"

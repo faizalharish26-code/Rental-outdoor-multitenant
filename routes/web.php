@@ -4,6 +4,7 @@ use App\Http\Controllers\TenantCategoryController;
 use App\Http\Controllers\TenantDashboardController;
 use App\Http\Controllers\TenantOrderController;
 use App\Http\Controllers\TenantProductController;
+use App\Http\Controllers\TenantInventoryController;
 use App\Livewire\CheckoutForm;
 use Illuminate\Support\Facades\Route;
 
@@ -61,6 +62,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::delete('/categories/{category}', [TenantCategoryController::class, 'destroy'])
                 ->name('categories.destroy');
+	    Route::get('/inventory', [TenantInventoryController::class, 'index'])
+ 	        ->name('inventory.index');
+
+ 	    Route::get('/inventory/create', [TenantInventoryController::class, 'create'])
+  	        ->name('inventory.create');
+
+	    Route::post('/inventory', [TenantInventoryController::class, 'store'])
+    	        ->name('inventory.store');
+
+	    Route::get('/inventory/{inventoryUnit}/edit', [TenantInventoryController::class, 'edit'])
+   	        ->name('inventory.edit');
+
+	    Route::put('/inventory/{inventoryUnit}', [TenantInventoryController::class, 'update'])
+  	        ->name('inventory.update');
         });
 
     // Route checkout

@@ -61,4 +61,10 @@ class Tenant extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    /** @return HasMany<InventoryUnit, $this> */
+    public function inventoryUnits(): HasMany
+    {
+        return $this->hasMany(InventoryUnit::class);
+    }
 }
