@@ -33,6 +33,12 @@
             </div>
         @enderror
 
+        @error('returns')
+            <div class="rounded-lg border border-red-300 bg-red-50 p-4 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+                {{ $message }}
+            </div>
+        @enderror
+
         <section class="grid gap-4 sm:grid-cols-2">
             <article class="rounded-xl border border-zinc-200 p-5 dark:border-zinc-700">
                 <h2 class="font-semibold">Pelanggan</h2>
@@ -124,26 +130,94 @@
             </section>
         @elseif ($order->status === 'fulfilled')
             <section class="rounded-xl border border-zinc-200 p-5 dark:border-zinc-700">
-                <h2 class="font-semibold">Tindakan pesanan</h2>
+                <h2 class="font-semibold">Pemeriksaan barang kembali</h2>
                 <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-300">
-                    Tandai selesai setelah barang sewaan dikembalikan.
+                    Catat kondisi setiap unit. Unit rusak masuk ke daftar perawatan dan wajib diberi catatan.
                 </p>
 
-                <form
-                    class="mt-4"
-                    method="POST"
-                    action="{{ route('tenant.orders.status', [$tenant, $order]) }}"
-                >
-                    @csrf
-                    <input type="hidden" name="status" value="completed">
+                @php
+                    $returnItemsReady = $order->items->isNotEmpty()
+                        && $order->items->every(fn ($item) => $item->inventoryUnit !== null);
+                @endphp
 
-                    <button
-                        type="submit"
-                        class="inline-flex min-h-11 items-center rounded-lg bg-green-800 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                @if (! $returnItemsReady)
+                    <p class="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+                        Pesanan ini belum memiliki unit inventaris untuk semua barang, jadi pengembalian belum dapat dicatat.
+                    </p>
+                @else
+                    <form
+                        class="mt-4 space-y-4"
+                        method="POST"
+                        action="{{ route('tenant.orders.status', [$tenant, $order]) }}"
                     >
-                        Tandai barang sudah dikembalikan
-                    </button>
-                </form>
+                        @csrf
+                        <input type="hidden" name="status" value="completed">
+
+                        @foreach ($order->items as $item)
+                            @php
+                                $conditionField = "returns.{$item->id}.condition";
+                                $noteField = "returns.{$item->id}.note";
+                            @endphp
+
+                            <fieldset class="grid gap-4 rounded-lg border border-zinc-200 p-4 sm:grid-cols-2 dark:border-zinc-700">
+                                <legend class="px-2 font-semibold">
+                                    {{ $item->product?->name ?? 'Produk' }}
+                                    ({{ $item->inventoryUnit->unit_code }})
+                                </legend>
+
+                                <div>
+                                    <label for="condition-{{ $item->id }}" class="block text-sm font-medium">
+                                        Kondisi barang
+                                    </label>
+                                    <select
+                                        id="condition-{{ $item->id }}"
+                                        name="returns[{{ $item->id }}][condition]"
+                                        required
+                                        class="mt-1 min-h-11 w-full rounded-lg border border-zinc-300 bg-white px-3 dark:border-zinc-600 dark:bg-zinc-900"
+                                    >
+                                        <option value="good" @selected(old($conditionField, $item->inventoryUnit->condition) === 'good')>
+                                            Baik
+                                        </option>
+                                        <option value="fair" @selected(old($conditionField, $item->inventoryUnit->condition) === 'fair')>
+                                            Cukup
+                                        </option>
+                                        <option value="damaged" @selected(old($conditionField, $item->inventoryUnit->condition) === 'damaged')>
+                                            Rusak
+                                        </option>
+                                    </select>
+                                    @error($conditionField)
+                                        <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label for="note-{{ $item->id }}" class="block text-sm font-medium">
+                                        Catatan kerusakan <span class="font-normal text-zinc-500">(wajib jika rusak)</span>
+                                    </label>
+                                    <textarea
+                                        id="note-{{ $item->id }}"
+                                        name="returns[{{ $item->id }}][note]"
+                                        rows="2"
+                                        maxlength="2000"
+                                        class="mt-1 w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-600 dark:bg-zinc-900"
+                                    >{{ old($noteField) }}</textarea>
+                                    @error($noteField)
+                                        <p class="mt-1 text-sm text-red-700 dark:text-red-300">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </fieldset>
+                        @endforeach
+
+
+
+                        <button
+                            type="submit"
+                            class="inline-flex min-h-11 items-center rounded-lg bg-green-800 px-4 py-2 font-semibold text-white hover:bg-green-700"
+                        >
+                            Simpan pemeriksaan dan selesaikan pesanan
+                        </button>
+                    </form>
+                @endif
             </section>
         @endif
 

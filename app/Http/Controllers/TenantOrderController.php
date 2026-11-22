@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InventoryUnit;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Tenant;
@@ -30,6 +31,8 @@ class TenantOrderController extends Controller
         'completed' => [],
         'cancelled' => [],
     ];
+
+    private const RETURN_CONDITIONS = ['good', 'fair', 'damaged'];
 
     public function index(Request $request, Tenant $tenant): View
     {
@@ -93,14 +96,73 @@ class TenantOrderController extends Controller
         );
 
         $allowedStatuses = self::TRANSITIONS[$order->status] ?? [];
-
-        $validated = $request->validate([
+        $rules = [
             'status' => [
                 'required',
                 'string',
                 Rule::in($allowedStatuses),
             ],
-        ]);
+        ];
+        $returnItems = collect();
+
+        if ($request->input('status') === 'completed') {
+            $returnItems = $order->items()
+                ->with('inventoryUnit')
+                ->get();
+
+            if ($returnItems->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'returns' => 'Pesanan tanpa rincian barang tidak dapat diselesaikan.',
+                ]);
+            }
+
+            foreach ($returnItems as $item) {
+                if (! $item->inventoryUnit) {
+                    throw ValidationException::withMessages([
+                        'returns' => 'Setiap barang harus memiliki unit inventaris sebelum pesanan diselesaikan.',
+                    ]);
+                }
+            }
+
+            $rules['returns'] = ['required', 'array', 'size:'.$returnItems->count()];
+
+            foreach ($returnItems as $item) {
+                $conditionField = 'returns.'.$item->getKey().'.condition';
+                $noteField = 'returns.'.$item->getKey().'.note';
+
+                $rules[$conditionField] = [
+                    'required',
+                    'string',
+                    Rule::in(self::RETURN_CONDITIONS),
+                ];
+                $rules[$noteField] = [
+                    Rule::requiredIf(
+                        fn (): bool => $request->input($conditionField) === 'damaged'
+                    ),
+                    'nullable',
+                    'string',
+                    'max:2000',
+                ];
+            }
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($validated['status'] === 'completed') {
+            $expectedItemIds = $returnItems
+                ->map(fn ($item): string => (string) $item->getKey())
+                ->sort()
+                ->values()
+                ->all();
+            $providedItemIds = array_map('strval', array_keys($validated['returns']));
+            sort($providedItemIds);
+
+            if ($providedItemIds !== $expectedItemIds) {
+                throw ValidationException::withMessages([
+                    'returns' => 'Data pemeriksaan harus sesuai dengan semua barang pada pesanan.',
+                ]);
+            }
+        }
 
         DB::transaction(function () use ($tenant, $order, $validated): void {
             $lockedOrder = $tenant->orders()
@@ -116,6 +178,57 @@ class TenantOrderController extends Controller
                 ]);
             }
 
+            if ($validated['status'] === 'completed') {
+                $items = $lockedOrder->items()
+                    ->lockForUpdate()
+                    ->get();
+                $unitIds = $items->pluck('inventory_unit_id');
+
+                if (
+                    $items->isEmpty()
+                    || $unitIds->contains(null)
+                    || $unitIds->unique()->count() !== $items->count()
+                ) {
+                    throw ValidationException::withMessages([
+                        'returns' => 'Setiap barang harus terhubung ke satu unit inventaris yang berbeda.',
+                    ]);
+                }
+
+                foreach ($items as $item) {
+                    $unit = InventoryUnit::query()
+                        ->whereKey($item->inventory_unit_id)
+                        ->where('tenant_id', $tenant->id)
+                        ->where('product_id', $item->product_id)
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (! $unit) {
+                        throw ValidationException::withMessages([
+                            'returns' => 'Unit inventaris pesanan tidak ditemukan pada toko ini.',
+                        ]);
+                    }
+
+                    $returnData = $validated['returns'][$item->getKey()] ?? null;
+
+                    if (! $returnData) {
+                        throw ValidationException::withMessages([
+                            'returns' => 'Data pemeriksaan harus diisi untuk semua unit.',
+                        ]);
+                    }
+
+                    $damaged = $returnData['condition'] === 'damaged';
+
+                    $unit->update([
+                        'condition' => $returnData['condition'],
+                        'status' => $damaged ? 'maintenance' : 'available',
+                        'maintenance_note' => $damaged
+                            ? trim($returnData['note'])
+                            : null,
+                        'maintenance_started_at' => $damaged ? today() : null,
+                    ]);
+                }
+            }
+
             $lockedOrder->update([
                 'status' => $validated['status'],
             ]);
@@ -124,7 +237,7 @@ class TenantOrderController extends Controller
         $messages = [
             'paid' => 'Pembayaran pesanan sudah dikonfirmasi.',
             'fulfilled' => 'Pesanan sudah ditandai diserahkan kepada pelanggan.',
-            'completed' => 'Pesanan sudah ditandai selesai dan barang dikembalikan.',
+            'completed' => 'Pengembalian dicatat dan status setiap unit inventaris diperbarui.',
             'cancelled' => 'Pesanan dibatalkan. Unit inventaris dapat dipesan kembali pada periode tersebut.',
         ];
 
