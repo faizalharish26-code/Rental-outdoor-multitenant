@@ -8,6 +8,9 @@ use App\Http\Controllers\TenantOrderController;
 use App\Http\Controllers\TenantProductController;
 use App\Livewire\CheckoutForm;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\CustomerCatalogController;
+use App\Http\Controllers\CustomerTenantController;
+
 
 Route::view('/', 'welcome')->name('home');
 
@@ -87,6 +90,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Route checkout
     Route::get('/checkout', CheckoutForm::class)->name('checkout');
+});
+
+// Route Publik Katalog Pelanggan (F1)
+Route::get('/tenants', [CustomerTenantController::class, 'index'])
+    ->name('customer.tenants.index');
+
+Route::scopeBindings()->group(function () {
+    Route::get('/t/{tenant:slug}/catalog', [CustomerCatalogController::class, 'index'])
+        ->name('customer.catalog.index');
+    Route::get('/t/{tenant:slug}/catalog/{product:slug}', [CustomerCatalogController::class, 'show'])
+        ->name('customer.catalog.show');
 });
 
 require __DIR__.'/settings.php';

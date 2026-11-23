@@ -19,7 +19,19 @@ class DatabaseSeeder extends Seeder
 
         User::factory()->create([
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'email' => 'admin@gmail.com',
+            'password' => 'admin1234',
+
+        ]);
+
+        User::factory()->create([
+            'name' => 'pelanggan',
+            'email' => 'pelanggan@gmail.com',
+            'password' => Hash::make('pelanggan1234'),
+        ]);
+
+        $this->call([
+            \Database\Seeders\CustomerCatalogSeeder::class,
         ]);
     }
 }
